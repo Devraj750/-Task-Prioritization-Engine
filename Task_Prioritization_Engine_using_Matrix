@@ -1,0 +1,93 @@
+import streamlit as st # type: ignore
+import pandas as pd # type: ignore
+
+st.set_page_config(page_title="Task Prioritization Engine", layout="centered")
+
+st.title("🗂️ Task Prioritization Engine using Eisenhower Matrix")
+st.write("""
+This app helps you organize your daily tasks by categorizing them based on **urgency** and **importance** 
+to boost your productivity and time management.
+""")
+
+if "tasks" not in st.session_state:
+    st.session_state.tasks = []
+
+with st.form(key='task_form', clear_on_submit=True):
+    task_name = st.text_input("Task Name")
+    urgent = st.checkbox("Urgent")
+    important = st.checkbox("Important")
+    submitted = st.form_submit_button("Add Task")
+
+    if submitted:
+        if task_name.strip() == "":
+            st.warning("Please enter a task name.")
+        else:
+            st.session_state.tasks.append({
+                "Task": task_name.strip(),
+                "Urgent": urgent,
+                "Important": important
+            })
+            st.success(f"Added task: {task_name}")
+
+df_tasks = pd.DataFrame(st.session_state.tasks)
+
+def assign_quadrant(row):
+    if row['Important'] and row['Urgent']:
+        return "Do Now (Q1)"
+    elif row['Important'] and not row['Urgent']:
+        return "Schedule (Q2)"
+    elif not row['Important'] and row['Urgent']:
+        return "Delegate (Q3)"
+    else:
+        return "Eliminate (Q4)"
+
+if not df_tasks.empty:
+    df_tasks['Quadrant'] = df_tasks.apply(assign_quadrant, axis=1)
+
+    st.markdown("### 📋 Your Prioritized Tasks:")
+
+    cols = st.columns(2)
+
+    with cols[0]:
+        st.markdown("#### 🔴 Do Now (Q1) - Important & Urgent")
+        q1_tasks = df_tasks[df_tasks['Quadrant'] == "Do Now (Q1)"]
+        if not q1_tasks.empty:
+            for t in q1_tasks['Task']:
+                st.write(f"- {t}")
+        else:
+            st.write("_No tasks in this quadrant._")
+
+        st.markdown("#### 🟡 Schedule (Q2) - Important but Not Urgent")
+        q2_tasks = df_tasks[df_tasks['Quadrant'] == "Schedule (Q2)"]
+        if not q2_tasks.empty:
+            for t in q2_tasks['Task']:
+                st.write(f"- {t}")
+        else:
+            st.write("_No tasks in this quadrant._")
+
+    with cols[1]:
+        st.markdown("#### 🟠 Delegate (Q3) - Urgent but Not Important")
+        q3_tasks = df_tasks[df_tasks['Quadrant'] == "Delegate (Q3)"]
+        if not q3_tasks.empty:
+            for t in q3_tasks['Task']:
+                st.write(f"- {t}")
+        else:
+            st.write("_No tasks in this quadrant._")
+
+        st.markdown("#### ⚪ Eliminate (Q4) - Neither Urgent nor Important")
+        q4_tasks = df_tasks[df_tasks['Quadrant'] == "Eliminate (Q4)"]
+        if not q4_tasks.empty:
+            for t in q4_tasks['Task']:
+                st.write(f"- {t}")
+        else:
+            st.write("_No tasks in this quadrant._")
+
+   
+    if st.button("Clear All Tasks"):
+        st.session_state.tasks = []
+        st.experimental_rerun()
+else:
+    st.info("Add some tasks to get started!")
+
+st.markdown("---")
+st.markdown("Made with ❤️ using Streamlit")
